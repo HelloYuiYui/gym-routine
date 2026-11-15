@@ -110,3 +110,14 @@ export function createRetry({
     },
   };
 }
+
+// Supabase signs people in by email. The group types a plain username instead, and it is
+// turned into an address on a reserved domain that never receives mail. Something that
+// already looks like an email is used as typed.
+export const LOGIN_DOMAIN = 'example.com';
+
+export function loginEmail(username) {
+  const name = String(username ?? '').trim().toLowerCase();
+  if (name === '' || name.includes('@')) return name;
+  return `${name}@${LOGIN_DOMAIN}`;
+}

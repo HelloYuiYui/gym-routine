@@ -15,8 +15,12 @@ the config is filled in, the queue is sent to Supabase on the next load.
 
 1. Create a free project at <https://supabase.com>.
 2. Open **SQL Editor**, paste the contents of `supabase/schema.sql`, and run it.
-3. **Authentication → Users → Add user → Create new user**: one email and
-   password shared by the group. Tick "Auto Confirm User".
+3. **Authentication → Users → Add user → Create new user**: one login shared
+   by the group. The app asks for a **username**, but Supabase needs an email,
+   so create the user as `<username>@example.com` (for example
+   `gymbros@example.com`) with a password of your choice, and tick "Auto
+   Confirm User". In the app you then sign in as `gymbros`. No mail is ever
+   sent to that address.
 4. **Authentication → Sign In / Providers**: turn off **Allow new users to sign
    up**, so nobody else can create an account.
 5. **Project Settings → API**: copy the **Project URL** and the **anon / public

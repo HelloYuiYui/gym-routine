@@ -160,7 +160,7 @@ $('signin-form').addEventListener('submit', async e => {
   const button = form.querySelector('button[type="submit"]');
   error.hidden = true;
   button.disabled = true;
-  const result = await store.signIn(form.elements.email.value.trim(), form.elements.password.value);
+  const result = await store.signIn(form.elements.username.value.trim(), form.elements.password.value);
   button.disabled = false;
   if (result.error) {
     error.textContent = result.error;

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  sendResult, sendOp, isAuthRefusal, resolveSession, createSyncGate, createRetry,
+  sendResult, sendOp, isAuthRefusal, resolveSession, createSyncGate, createRetry, loginEmail,
 } from '../js/sync.js';
 
 const op = { table: 'entries', rows: [{ id: 'x' }], onConflict: 'exercise_id,date' };
@@ -202,4 +202,12 @@ test('retry: success or a new write resets the backoff; only one timer at a time
   assert.deepEqual(timers.delays(), []);
   retry.afterFlush();
   assert.deepEqual(timers.delays(), [5000]);
+});
+
+test('loginEmail turns a username into the address Supabase signs in with', () => {
+  assert.equal(loginEmail('gymbros'), 'gymbros@example.com');
+  assert.equal(loginEmail('  GymBros '), 'gymbros@example.com');
+  assert.equal(loginEmail('Someone@Mail.com'), 'someone@mail.com');
+  assert.equal(loginEmail(''), '');
+  assert.equal(loginEmail('   '), '');
 });

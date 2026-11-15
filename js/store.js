@@ -3,7 +3,7 @@
 // writes stay queued until the owner fills in the config.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { createQueue } from './queue.js';
-import { sendOp, resolveSession, createSyncGate, createRetry } from './sync.js';
+import { sendOp, resolveSession, createSyncGate, createRetry, loginEmail } from './sync.js';
 import { buildRoutineRows, localDate } from './logic.js';
 import { DEFAULT_ROUTINE } from './default-routine.js';
 
@@ -234,12 +234,12 @@ export async function getSession() {
   return resolveSession(await getClient(), hasStoredSession);
 }
 
-export async function signIn(email, password) {
+export async function signIn(username, password) {
   if (localOnly) return {};
   const client = await getClient();
   const unreachable = 'Cannot reach the server. Check your connection and try again.';
   if (!client) return { error: unreachable };
-  const { error } = await client.auth.signInWithPassword({ email, password });
+  const { error } = await client.auth.signInWithPassword({ email: loginEmail(username), password });
   if (!error) return {};
   if (error.name === 'AuthRetryableFetchError' || !error.status) return { error: unreachable };
   return { error: error.message };
