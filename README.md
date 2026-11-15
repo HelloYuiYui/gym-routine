@@ -58,3 +58,9 @@ npm test
    in the app are relative, so it works under the repository sub-path.
 4. On each phone: open the link, sign in with the group login, pick your name,
    and add the page to the home screen.
+
+The app shell (HTML, CSS, JS, and the supabase-js module) is kept on the phone
+by a service worker (`sw.js`), so the app opens even with no signal. It serves
+the saved copy first and fetches the new one in the background: after you
+publish an update (including filling in `js/config.js`), each phone may need
+one extra reload to pick it up. The same applies while developing locally.
