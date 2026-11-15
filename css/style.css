@@ -266,14 +266,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .segmented {
   display: inline-flex;
-  padding: 3px;
-  gap: 3px;
+  padding: 2px;
+  gap: 2px;
   border-radius: var(--r-md);
   background: var(--surface-2);
   border: 1px solid var(--line);
 }
 .seg {
-  min-height: calc(var(--tap) - 8px);
+  min-height: var(--tap);
   min-width: var(--tap);
   padding: 0 var(--sp-4);
   border: 0;

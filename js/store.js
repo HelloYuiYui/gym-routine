@@ -165,17 +165,29 @@ function queuedOps() {
   }
 }
 
+// PostgREST caps a response at 1000 rows, so read each table in pages ordered by id
+// until a short page comes back. Any failed page fails the whole read, so a partial
+// result never replaces the cache.
+export async function fetchTable(client, table, pageSize = 1000) {
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error, status } = await client.from(table).select('*')
+      .order('id').range(from, from + pageSize - 1);
+    if (error) {
+      if (status === 401) authListeners.forEach(cb => cb());
+      throw error;
+    }
+    rows.push(...data);
+    if (data.length < pageSize) return rows;
+  }
+}
+
 export async function loadAll() {
   try {
     const client = await getClient();
     if (!client) throw new Error('no backend');
-    const results = await Promise.all(TABLES.map(t => client.from(t).select('*')));
-    const failed = results.find(r => r.error);
-    if (failed) {
-      if (failed.status === 401) authListeners.forEach(cb => cb());
-      throw failed.error;
-    }
-    TABLES.forEach((t, i) => { state[t] = results[i].data; });
+    const results = await Promise.all(TABLES.map(t => fetchTable(client, t)));
+    TABLES.forEach((t, i) => { state[t] = results[i]; });
     // Writes still waiting in the queue are newer than what the server returned.
     for (const op of queuedOps()) applyRows(op.table, op.rows);
     saveCache();
