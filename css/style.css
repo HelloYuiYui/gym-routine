@@ -24,6 +24,9 @@
                 .seg-held / .seg-failed colour the pressed state green / red
      Nav        .bottom-nav > .nav-btn[aria-current="page"]
      Status     .sync[data-tone="ok|busy|warn|error"]  .form-error
+     Validation .input[aria-invalid="true"] marks a field that failed validation
+     Results    .result-btn.result-held / .result-failed[aria-pressed="true"]
+     Workout    view-specific rules live in the "Workout view" section at the end
    ===================================================================== */
 
 :root {
@@ -407,3 +410,186 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: 0 0 4px 4px;
   background: var(--accent);
 }
+
+/* =====================================================================
+   Workout view
+   Session buttons and week toggle ride in the sticky header. Info items
+   are a quiet list; loggable exercises are cards whose loudest parts are
+   the name, last time's numbers, the inputs and the Held / Failed pair.
+   ===================================================================== */
+
+.workout-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.session-seg {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.session-seg::-webkit-scrollbar { display: none; }
+.session-seg .seg { flex: 1 0 auto; padding: 0 var(--sp-2); }
+/* Compact so three session names fit beside it on a 390px phone. */
+.week-btn {
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 var(--sp-2);
+  min-width: 56px;
+  border-color: var(--accent);
+  color: var(--accent);
+  line-height: 1;
+}
+.week-btn-label { font-size: 0.7rem; font-weight: var(--fw-bold); }
+.week-btn-value { font-size: var(--fs-lg); font-weight: var(--fw-heavy); }
+
+.workout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.workout-empty { display: flex; flex-direction: column; gap: var(--sp-4); padding-top: var(--sp-2); }
+.workout-empty > p { color: var(--muted); }
+.workout-empty > .workout-empty-title {
+  color: var(--ink);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-heavy);
+  letter-spacing: -0.02em;
+}
+
+.week-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+}
+.week-banner-text { font-weight: var(--fw-bold); }
+.week-banner-actions { display: flex; gap: var(--sp-2); }
+
+/* Info items: read-only, visually quiet. */
+.info-list {
+  padding: 0 var(--sp-2);
+  border-left: 3px solid var(--line);
+}
+.info-item { padding: var(--sp-2) var(--sp-2); }
+.info-item + .info-item { border-top: 1px solid var(--line); }
+.info-line { font-size: var(--fs-sm); line-height: 1.35; }
+.info-name { font-weight: var(--fw-bold); }
+.info-target { color: var(--muted); }
+.info-notes {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+/* Exercise card */
+.workout-card { display: flex; flex-direction: column; gap: var(--sp-2); }
+.workout-card[data-done="failed"] {
+  border-color: var(--failed);
+  box-shadow: inset 6px 0 0 var(--failed);
+}
+.wc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.wc-title-wrap { min-width: 0; padding-top: var(--sp-2); }
+.wc-title { font-size: var(--fs-xl); font-weight: var(--fw-heavy); letter-spacing: -0.02em; }
+.wc-done-tag {
+  display: none;
+  margin-top: var(--sp-1);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-heavy);
+  color: var(--held);
+}
+.workout-card[data-done] .wc-done-tag { display: inline-block; }
+.workout-card[data-done="failed"] .wc-done-tag { color: var(--failed); }
+.wc-done-tag::before { content: "● "; }
+
+.wc-target { font-size: var(--fs-lg); }
+.wc-notes {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: pre-line;
+}
+.wc-last {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-lg);
+  line-height: 1.3;
+}
+.wc-last-label, .wc-last-date { color: var(--muted); font-size: var(--fs-base); }
+.wc-held { color: var(--held); font-weight: var(--fw-bold); }
+.wc-failed { color: var(--failed); font-weight: var(--fw-bold); }
+
+.wc-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+.wc-field { align-items: center; }
+.wc-field .input-num { width: 100%; }
+.input[aria-invalid="true"] {
+  border-color: var(--failed);
+  background: var(--failed-soft);
+  color: var(--failed);
+}
+
+/* Held / Failed: the biggest, clearest targets on the screen. */
+.result-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+.result-btn {
+  min-height: 60px;
+  border: 2px solid currentColor;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-heavy);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.result-btn:active { transform: translateY(1px); }
+.result-held { color: var(--held); }
+.result-failed { color: var(--failed); }
+.result-held[aria-pressed="true"] { background: var(--held); border-color: var(--held); color: var(--surface); }
+.result-failed[aria-pressed="true"] { background: var(--failed); border-color: var(--failed); color: var(--surface); }
+
+/* Rest timer button: quiet when idle, loud while counting. */
+.rest-btn {
+  flex: 0 0 auto;
+  padding: 0 var(--sp-3);
+  gap: var(--sp-1);
+  border-color: var(--line);
+  font-weight: var(--fw-bold);
+}
+.rest-label { color: var(--muted); font-size: var(--fs-sm); }
+.rest-clock { font-size: var(--fs-lg); }
+.rest-play { color: var(--accent); font-size: var(--fs-sm); }
+.rest-action { font-size: var(--fs-sm); }
+.rest-btn[data-state="running"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  gap: var(--sp-2);
+}
+.rest-btn[data-state="running"] .rest-clock { font-size: var(--fs-xl); }
+.rest-btn[data-state="done"] {
+  background: var(--held-soft);
+  border-color: var(--held);
+}
+.rest-btn[data-state="done"] .rest-label { color: var(--held); font-weight: var(--fw-heavy); }

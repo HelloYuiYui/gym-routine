@@ -54,10 +54,14 @@ function renderPicker() {
 }
 
 function renderView() {
+  const personId = store.currentPersonId();
+  // The header's week slot holds the workout's session buttons and week toggle.
+  if (activeView === 'workout') workout.renderHeader($('week-slot'), { personId });
+  else $('week-slot').replaceChildren();
   for (const [name, mod] of Object.entries(VIEWS)) {
     const container = $(`view-${name}`);
     container.hidden = name !== activeView;
-    if (name === activeView) mod.render(container, { personId: store.currentPersonId() });
+    if (name === activeView) mod.render(container, { personId });
   }
   for (const btn of document.querySelectorAll('.nav-btn')) {
     if (btn.dataset.view === activeView) btn.setAttribute('aria-current', 'page');
