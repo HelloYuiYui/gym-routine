@@ -1,7 +1,9 @@
 // Progress view: one small line chart per logged exercise for the selected person.
 // Weight lifts chart kg, timed holds chart seconds. Held points are filled, failed are hollow.
+// Entries are charted by their own shape, so an exercise whose kind changed (or that is
+// now 'info') still shows the history that matches.
 import { state } from '../store.js';
-import { chartSeries, chartPoints } from '../logic.js';
+import { chartSeries, chartPoints, seriesKind } from '../logic.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const W = 320;        // viewBox width; the SVG scales to the card
@@ -120,8 +122,8 @@ function detailLine(series, chosen) {
 
 // ---- Card ----
 
-function buildCard(exercise, series, removed) {
-  const unit = exercise.kind === 'timed' ? 's' : 'kg';
+function buildCard(exercise, series, kind, removed) {
+  const unit = kind === 'timed' ? 's' : 'kg';
   const latest = series[series.length - 1];
   const card = el('article', 'card pg-card');
 
@@ -153,12 +155,13 @@ export function render(container, { personId }) {
   for (const session of sessions) {
     const cards = [];
     const exercises = state.exercises
-      .filter(e => e.session_id === session.id && (e.kind === 'weight' || e.kind === 'timed'))
+      .filter(e => e.session_id === session.id)
       .sort((a, b) => a.position - b.position);
     for (const ex of exercises) {
       const mine = state.entries.filter(e => e.person_id === personId && e.exercise_id === ex.id);
-      if (!mine.length) continue;
-      cards.push(buildCard(ex, chartSeries(mine, ex), ex.archived || session.archived));
+      const series = chartSeries(mine, ex);
+      if (!series.length) continue;
+      cards.push(buildCard(ex, series, seriesKind(mine, ex), ex.archived || session.archived));
     }
     if (cards.length) {
       const group = el('section', 'pg-group');

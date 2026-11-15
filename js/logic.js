@@ -12,25 +12,33 @@ export function parseNumber(text) {
   return Number(t.replace(',', '.'));
 }
 
-function parseInt1(text) {
+// Upper bounds keep absurd numbers (typos, int overflow) from ever reaching the server.
+export const LIMITS = { weight: 9999, sets: 999, reps: 999, seconds: 86400 };
+
+function parseInt1(text, max) {
   const n = parseNumber(text);
-  return n !== null && Number.isInteger(n) && n >= 1 ? n : null;
+  return n !== null && Number.isInteger(n) && n >= 1 && n <= max ? n : null;
+}
+
+function parseWeight(text) {
+  const n = parseNumber(text);
+  return n !== null && n <= LIMITS.weight ? n : null;
 }
 
 export function validateEntry(kind, raw) {
   const invalid = [];
-  let weight = parseNumber(raw.weight);
-  const sets = parseInt1(raw.sets);
+  const weight = parseWeight(raw.weight);
+  const sets = parseInt1(raw.sets, LIMITS.sets);
   let reps = null, seconds = null;
   if (kind === 'weight') {
     if (weight === null) invalid.push('weight');
     if (sets === null) invalid.push('sets');
-    reps = parseInt1(raw.reps);
+    reps = parseInt1(raw.reps, LIMITS.reps);
     if (reps === null) invalid.push('reps');
   } else {
     if (String(raw.weight ?? '').trim() !== '' && weight === null) invalid.push('weight');
     if (sets === null) invalid.push('sets');
-    seconds = parseInt1(raw.seconds);
+    seconds = parseInt1(raw.seconds, LIMITS.seconds);
     if (seconds === null) invalid.push('seconds');
   }
   if (invalid.length) return { ok: false, invalid };
@@ -52,9 +60,21 @@ export function todayEntry(entries, exerciseId, date) {
   return entries.find(e => e.exercise_id === exerciseId && e.date === date);
 }
 
+// An entry's own shape: one with seconds is a timed hold, anything else a weight lift.
+// Exercises can change kind after entries were logged, so entries are read by shape.
+export function entryKind(entry) {
+  return entry.seconds === null || entry.seconds === undefined ? 'weight' : 'timed';
+}
+
+const isLoggedKind = kind => kind === 'weight' || kind === 'timed';
+const byDateAsc = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+
+// Only entries shaped like the exercise's current kind (any shape when the kind is not a logged one).
 export function lastEntry(entries, exercise, date, week) {
+  const kind = exercise.kind;
   const earlier = entries
     .filter(e => e.exercise_id === exercise.id && e.date < date)
+    .filter(e => !isLoggedKind(kind) || entryKind(e) === kind)
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   if (exercise.target_b) {
     const sameWeek = earlier.find(e => e.week === week);
@@ -65,8 +85,9 @@ export function lastEntry(entries, exercise, date, week) {
 
 const num = n => String(Number(n));
 
+// `kind` is kept for compatibility and ignored: the entry's own shape decides.
 export function formatEntry(entry, kind) {
-  if (kind === 'timed') {
+  if (entryKind(entry) === 'timed') {
     const base = `${entry.sets}×${entry.seconds}s`;
     return entry.weight_kg === null || entry.weight_kg === undefined
       ? base : `${num(entry.weight_kg)} kg ${entry.sets}×${entry.seconds}s`;
@@ -87,15 +108,27 @@ export function shouldOfferWeekFlip(weekSetOn, today) {
   return mondayIndex(weekSetOn) < mondayIndex(today);
 }
 
+// Which shape a chart shows: the exercise's kind, or for an 'info' exercise (or any
+// other kind) the shape of its most recent entry. null when there are no entries.
+export function seriesKind(entries, exercise) {
+  if (isLoggedKind(exercise.kind)) return exercise.kind;
+  const latest = [...entries].sort(byDateAsc).at(-1);
+  return latest ? entryKind(latest) : null;
+}
+
+// Only entries of the series' shape are plotted, and never a missing value.
 export function chartSeries(entries, exercise) {
+  const kind = seriesKind(entries, exercise);
   return [...entries]
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    .sort(byDateAsc)
+    .filter(e => entryKind(e) === kind)
     .map(e => ({
       date: e.date,
-      value: exercise.kind === 'timed' ? e.seconds : e.weight_kg,
+      value: kind === 'timed' ? e.seconds : e.weight_kg,
       result: e.result,
-      label: formatEntry(e, exercise.kind),
-    }));
+      label: formatEntry(e),
+    }))
+    .filter(p => p.value !== null && p.value !== undefined);
 }
 
 export function chartPoints(series, width, height, pad) {
