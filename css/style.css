@@ -593,3 +593,70 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-color: var(--held);
 }
 .rest-btn[data-state="done"] .rest-label { color: var(--held); font-weight: var(--fw-heavy); }
+
+/* =====================================================================
+   Routine view
+   One card per session: name and its tools on top, exercises as a ruled
+   list (tap a row to open its edit form in place), add-button at the foot.
+   ===================================================================== */
+
+.rt-session { display: flex; flex-direction: column; gap: var(--sp-2); }
+.rt-session-head { display: flex; align-items: center; gap: var(--sp-2); }
+.rt-session-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-heavy);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.rt-session-tools { display: flex; gap: var(--sp-2); margin-top: calc(var(--sp-1) * -1); }
+.rt-danger { color: var(--failed); }
+.rt-name-form { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.rt-name-form .input { flex: 1 1 100%; }
+.rt-name-form .btn { flex: 1 1 0; }
+
+.rt-list { border-top: 1px solid var(--line); }
+.rt-ex + .rt-ex { border-top: 1px solid var(--line); }
+.rt-ex-row { display: flex; align-items: center; gap: var(--sp-1); }
+.rt-ex-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--sp-2) var(--sp-1);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.rt-ex-name { font-weight: var(--fw-bold); overflow-wrap: anywhere; }
+.rt-ex-target { font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.rt-ex-main[aria-expanded="true"] .rt-ex-name { color: var(--accent); }
+.rt-arrow { border-color: transparent; background: transparent; font-size: var(--fs-lg); }
+.rt-arrow:disabled { opacity: 0.25; }
+.rt-empty { padding: var(--sp-2) 0; }
+.rt-add { border-style: dashed; color: var(--accent); }
+
+.rt-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: var(--sp-1) 0 var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+}
+.rt-form .input { background: var(--surface); }
+.rt-form textarea.input { padding: var(--sp-2) var(--sp-3); resize: vertical; }
+.rt-form select.input { appearance: auto; }
+.rt-seg { display: flex; background: var(--surface); }
+.rt-seg .seg { flex: 1 1 0; padding: 0 var(--sp-2); }
+.rt-rest { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.rt-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
+.rt-remove { color: var(--failed); border-color: var(--failed); background: transparent; }
+.rt-new { margin-top: var(--sp-1); }
