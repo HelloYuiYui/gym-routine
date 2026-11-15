@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#e9ece8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1b1e22" media="(prefers-color-scheme: dark)">
+  <title>Gym Log</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <p id="boot" class="screen-note">Loading…</p>
+
+  <section id="signin" class="screen" hidden>
+    <h1 class="screen-title">Gym Log</h1>
+    <p class="muted">Sign in with the group login. This phone stays signed in.</p>
+    <form id="signin-form" class="stack" novalidate>
+      <label class="field">
+        <span class="field-label">Username</span>
+        <input class="input" type="text" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+      </label>
+      <label class="field">
+        <span class="field-label">Password</span>
+        <input class="input" type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <p id="signin-error" class="form-error" role="alert" hidden></p>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <section id="picker" class="screen" hidden>
+    <h1 class="screen-title">Who's training?</h1>
+    <ul id="picker-list" class="choice-list"></ul>
+    <form id="add-person-form" class="stack">
+      <label class="field">
+        <span class="field-label">Add a person</span>
+        <input class="input" type="text" name="name" autocomplete="off" autocapitalize="words" maxlength="40" placeholder="Name">
+      </label>
+      <button class="btn btn-primary btn-block" type="submit">Add person</button>
+    </form>
+  </section>
+
+  <div id="shell" hidden>
+    <header class="app-header">
+      <div class="app-header-row">
+        <label class="person-picker">
+          <span class="visually-hidden">Person</span>
+          <select id="person-select" class="person-select"></select>
+        </label>
+        <p id="sync" class="sync" role="status" aria-live="polite"></p>
+      </div>
+      <div id="week-slot"></div>
+    </header>
+
+    <main class="app-main">
+      <section id="view-workout" class="view" hidden></section>
+      <section id="view-progress" class="view" hidden></section>
+      <section id="view-routine" class="view" hidden></section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Views">
+      <button class="nav-btn" type="button" data-view="workout">Workout</button>
+      <button class="nav-btn" type="button" data-view="progress">Progress</button>
+      <button class="nav-btn" type="button" data-view="routine">Routine</button>
+    </nav>
+  </div>
+</body>
+</html>
