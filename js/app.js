@@ -13,6 +13,7 @@ const screens = { boot: $('boot'), signin: $('signin'), picker: $('picker'), she
 let activeView = 'workout';
 let started = false;
 let authLost = false;
+let addingPerson = false; // the picker was opened from the shell to add someone
 
 function show(name) {
   for (const [key, el] of Object.entries(screens)) el.hidden = key !== name;
@@ -73,7 +74,7 @@ function renderView() {
 function render() {
   if (!started) return;
   const id = store.currentPersonId();
-  if (!id || !knownPerson(id)) {
+  if (addingPerson || !id || !knownPerson(id)) {
     renderPicker();
     show('picker');
     return;
@@ -85,19 +86,25 @@ function render() {
 
 // ---- Sync indicator ----
 
-let sync = { pending: 0, rejected: 0 };
+let sync = { pending: 0, rejected: 0, storageFailed: false, loadError: false };
 
 function renderSync() {
-  const { pending, rejected } = sync;
+  const { pending, rejected, storageFailed, loadError } = sync;
   const el = $('sync');
   let text;
   let tone = 'ok';
-  if (rejected > 0) {
+  if (storageFailed) {
+    text = 'Storage full — not saved on this phone';
+    tone = 'error';
+  } else if (rejected > 0) {
     text = `${rejected} not saved`;
     tone = 'error';
   } else if (store.localOnly) {
     text = 'Local only — not synced';
     tone = 'warn';
+  } else if (loadError) {
+    text = 'Could not load from the server';
+    tone = 'error';
   } else if (pending === 0) {
     text = 'Synced';
   } else if (navigator.onLine) {
@@ -114,19 +121,29 @@ function renderSync() {
 // ---- Actions ----
 
 function choosePerson(id) {
+  addingPerson = false;
   store.setCurrentPerson(id);
   render();
 }
 
+// Stays open across store changes (and keeps the typed name) until a person is chosen.
 function openAddPerson() {
+  addingPerson = true;
   renderPicker();
   show('picker');
   $('add-person-form').elements.name.focus();
 }
 
-async function start() {
-  show('boot');
+// Load from the cache, then the server. With `fromCache` the cached data is already in
+// state and on screen, so nothing waits on the network.
+async function start({ fromCache = false } = {}) {
   authLost = false;
+  if (fromCache) {
+    started = true;
+    render();
+  } else {
+    show('boot');
+  }
   await store.loadAll();
   if (authLost) return; // a 401 during the load put the sign-in form back up
   started = true;
@@ -182,8 +199,8 @@ for (const btn of document.querySelectorAll('.nav-btn')) {
 }
 
 store.subscribe(render);
-store.onSync((pending, rejected) => {
-  sync = { pending, rejected };
+store.onSync(status => {
+  sync = status;
   renderSync();
 });
 store.onAuthRequired(() => {
@@ -198,9 +215,39 @@ window.addEventListener('online', () => {
 });
 window.addEventListener('offline', renderSync);
 
+// Back in the app (maybe days later): re-render for today's date and pick up entries
+// logged on the other phones.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  render();
+  store.refreshIfStale(60000);
+});
+
 // ---- Boot ----
 
+// The app shell (HTML, CSS, JS) is cached by sw.js so a cold open works with no signal.
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register('sw.js').catch(() => {
+    // no service worker: the app still works online
+  });
+}
+
 (async () => {
+  if (store.canStartFromCache()) {
+    // Render the cached routine and numbers at once; check the session and load in the background.
+    store.loadFromCache();
+    started = true;
+    render();
+    authLost = false;
+    const signedIn = await store.getSession();
+    if (authLost) return; // a write got a 401 meanwhile: the sign-in form is up
+    if (signedIn) await start({ fromCache: true });
+    else {
+      started = false;
+      show('signin');
+    }
+    return;
+  }
   if (await store.getSession()) await start();
   else show('signin');
 })();
