@@ -32,6 +32,7 @@ const blocks = new Map(); // banner, messages and info lists, refilled each rend
 const weekStampPending = new Set();
 let timer = null;         // { exerciseId, remaining, cancel }
 let timesUpId = null;     // exercise whose rest just ended, shown for a few seconds
+let timesUpTimeout = null; // clears timesUpId after TIMES_UP_MS
 
 // ---- Helpers ----
 
@@ -49,6 +50,7 @@ function button(className, text, onClick) {
   return b;
 }
 
+// The local date, read fresh every time: the page may stay open past midnight.
 const today = () => localDate(new Date());
 const findPerson = id => state.people.find(p => p.id === id);
 const weekOf = person => (person.current_week === 'B' ? 'B' : 'A');
@@ -300,7 +302,7 @@ function logResult(card, personId, result) {
   saveEntry({
     person_id: personId,
     exercise_id: card.exercise.id,
-    date: localDate(new Date()),
+    date: today(),
     week: weekOf(person),
     ...check.values,
     result,
@@ -336,9 +338,19 @@ function paintRestFor(exerciseId) {
   }
 }
 
+// Drop a "rest over" state (and its pending timeout), repainting the card that showed it.
+function clearTimesUp() {
+  clearTimeout(timesUpTimeout);
+  timesUpTimeout = null;
+  if (timesUpId === null) return;
+  const id = timesUpId;
+  timesUpId = null;
+  paintRestFor(id);
+}
+
 function toggleTimer(exercise) {
   const previous = timer;
-  timesUpId = null;
+  clearTimesUp();
   if (previous) {
     previous.cancel();
     timer = null;
@@ -356,13 +368,10 @@ function toggleTimer(exercise) {
     () => {
       if (timer !== current) return;
       timer = null;
+      clearTimesUp();
       timesUpId = exercise.id;
       paintRestFor(exercise.id);
-      setTimeout(() => {
-        if (timesUpId !== exercise.id) return;
-        timesUpId = null;
-        paintRestFor(exercise.id);
-      }, TIMES_UP_MS);
+      timesUpTimeout = setTimeout(clearTimesUp, TIMES_UP_MS);
     },
   );
 }

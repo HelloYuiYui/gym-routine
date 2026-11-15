@@ -9,7 +9,7 @@ import { state, saveSession, saveExercise, saveExercises } from '../store.js';
 const KINDS = [['weight', 'Weight'], ['timed', 'Timed'], ['info', 'Info']];
 const WEEKS = [['both', 'Both'], ['A', 'A'], ['B', 'B']];
 
-// form: { exerciseId: string|null (null = new), draft } ; nameEdit: { sessionId: string|'new', value }
+// form: { exerciseId: string|null (null = new), draft, original } ; nameEdit: { sessionId: string|'new', value }
 let form = null;
 let nameEdit = null;
 let lastPersonId = null;
@@ -86,8 +86,18 @@ function parseRest(draft) {
   const s = draft.seconds.trim();
   if (!m && !s) return { rest: null };
   if (!/^\d*$/.test(m) || !/^\d*$/.test(s)) return { error: 'Rest time must be whole numbers.', field: 'minutes' };
-  return { rest: Number(m || 0) * 60 + Number(s || 0) };
+  const rest = Number(m || 0) * 60 + Number(s || 0);
+  return { rest: rest > 0 ? rest : null }; // 0 means no rest time
 }
+
+function openForm(exerciseId, draft) {
+  return { exerciseId, draft, original: JSON.stringify(draft), error: null };
+}
+
+const formChanged = () => Boolean(form) && JSON.stringify(form.draft) !== form.original;
+
+// Before replacing or closing an open form with unsaved edits, ask.
+const mayDiscardForm = () => !formChanged() || confirm('Discard unsaved changes?');
 
 function saveForm() {
   const { draft, exerciseId } = form;
@@ -268,7 +278,8 @@ function exerciseRow(exercise, index, list, sessions) {
   const open = form?.exerciseId === exercise.id;
   const row = el('div', 'rt-ex-row');
   const main = button('rt-ex-main', '', () => {
-    form = open ? null : { exerciseId: exercise.id, draft: draftFrom(exercise), error: null };
+    if (!mayDiscardForm()) return;
+    form = open ? null : openForm(exercise.id, draftFrom(exercise));
     refresh();
   });
   main.setAttribute('aria-expanded', String(open));
@@ -356,7 +367,8 @@ function sessionCard(session, index, sessions, personId) {
     card.append(wrap);
   } else {
     card.append(button('btn btn-block rt-add', '+ Add exercise', () => {
-      form = { exerciseId: null, draft: draftFrom(null, session.id), error: null };
+      if (!mayDiscardForm()) return;
+      form = openForm(null, draftFrom(null, session.id));
       refresh();
     }));
   }
@@ -395,6 +407,10 @@ export function render(container, { personId }) {
 
   const saved = captureFocus(container);
   const sessions = personSessions(personId);
+  // Drop a session-name edit whose session vanished (removed elsewhere).
+  if (nameEdit && nameEdit.sessionId !== 'new' && !sessions.some(s => s.id === nameEdit.sessionId)) nameEdit = null;
+  // Likewise a new-exercise form whose session vanished (it could no longer be shown).
+  if (form && form.exerciseId === null && !sessions.some(s => s.id === form.draft.session_id)) form = null;
   const root = el('div', 'routine stack');
   if (!state.people.some(p => p.id === personId)) {
     root.append(el('p', 'placeholder', 'Pick a person first.'));
