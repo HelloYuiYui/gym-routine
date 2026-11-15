@@ -1,0 +1,409 @@
+/* =====================================================================
+   Gym Log — visual language
+   Used on a phone, one-handed, between sets: big targets, high contrast,
+   numbers you can read at arm's length. Chalk-grey floor, white cards,
+   one accent (the blue of a 20 kg plate). Light and dark follow the phone.
+
+   Tokens (custom properties on :root)
+     Colour   --bg  --surface  --surface-2  --ink  --muted  --line
+              --accent  --accent-ink  --accent-soft
+              --held  --held-soft  --failed  --failed-soft  --warn  --focus
+     Type     --font  --fs-sm  --fs-base  --fs-lg  --fs-xl  --fs-num  --fs-display
+              --fw-normal  --fw-bold  --fw-heavy  --lh
+     Space    --sp-1 (4px) --sp-2 (8) --sp-3 (12) --sp-4 (16) --sp-5 (24) --sp-6 (32)
+     Radius   --r-sm (inputs, segments)  --r-md (buttons)  --r-lg (cards)
+     Size     --tap (min control height)  --nav-h  --header-h  --gutter
+
+   Shared classes
+     Layout     .stack (vertical gap)  .row (horizontal, centred)  .row-between
+     Text       .muted  .num (tabular, heavy figures)  .placeholder  .visually-hidden
+     Card       .card  .card[data-done]  .card-title
+     Buttons    .btn  .btn-primary  .btn-quiet  .btn-choice  .btn-block  .btn-icon
+     Inputs     .field  .field-label  .input  .input-num (big centred number)
+     Segmented  .segmented > .seg[aria-pressed="true"]
+                .seg-held / .seg-failed colour the pressed state green / red
+     Nav        .bottom-nav > .nav-btn[aria-current="page"]
+     Status     .sync[data-tone="ok|busy|warn|error"]  .form-error
+   ===================================================================== */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #e9ece8;
+  --surface: #ffffff;
+  --surface-2: #f3f5f2;
+  --ink: #1a1d21;
+  --muted: #565d65;
+  --line: #c4cac4;
+  --accent: #1f47c8;
+  --accent-ink: #ffffff;
+  --accent-soft: #dfe6fb;
+  --held: #1c7a43;
+  --held-soft: #dcefe3;
+  --failed: #b8232a;
+  --failed-soft: #f7dfe0;
+  --warn: #8a5a00;
+  --focus: #1f47c8;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem;
+  --fs-num: 2rem;
+  --fs-display: 2.25rem;
+  --fw-normal: 400;
+  --fw-bold: 650;
+  --fw-heavy: 800;
+  --lh: 1.4;
+
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+
+  --tap: 48px;
+  --nav-h: 68px;
+  --header-h: 64px;
+  --gutter: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1e22;
+    --surface: #262a30;
+    --surface-2: #30353c;
+    --ink: #eef1ec;
+    --muted: #a7aeb6;
+    --line: #434a52;
+    --accent: #86a3ff;
+    --accent-ink: #0f1a3d;
+    --accent-soft: #2b3556;
+    --held: #5dd08f;
+    --held-soft: #1f3a2b;
+    --failed: #ff7b7b;
+    --failed-soft: #45262a;
+    --warn: #e8b84a;
+    --focus: #86a3ff;
+  }
+}
+
+/* ---- Base ---- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 112.5%; /* 18px: readable at arm's length */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: var(--lh);
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+[hidden] { display: none !important; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ---- Layout helpers ---- */
+
+.stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+.row { display: flex; align-items: center; gap: var(--sp-3); }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+
+.muted { color: var(--muted); }
+.num {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--fw-heavy);
+  letter-spacing: -0.01em;
+}
+.placeholder { color: var(--muted); padding: var(--sp-5) 0; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Full-screen steps (boot, sign-in, picker) ---- */
+
+.screen {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: calc(var(--sp-6) + env(safe-area-inset-top)) var(--gutter) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.screen-title {
+  font-size: var(--fs-display);
+  font-weight: var(--fw-heavy);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.screen-note {
+  padding: var(--sp-6) var(--gutter);
+  color: var(--muted);
+  text-align: center;
+}
+
+.choice-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* ---- Card ---- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+.card[data-done] {
+  border-color: var(--held);
+  box-shadow: inset 6px 0 0 var(--held);
+}
+.card-title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  line-height: 1.2;
+}
+
+/* ---- Buttons ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 var(--sp-4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.btn-choice {
+  min-height: 64px;
+  justify-content: flex-start;
+  font-size: var(--fs-lg);
+  border-radius: var(--r-lg);
+}
+
+.btn-block { display: flex; width: 100%; }
+.btn-icon { padding: 0; width: var(--tap); }
+
+/* ---- Inputs ---- */
+
+.field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.field-label { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--muted); }
+
+.input {
+  min-height: var(--tap);
+  width: 100%;
+  padding: 0 var(--sp-3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.input:focus { border-color: var(--accent); outline: none; }
+.input:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+
+.input-num {
+  min-height: 56px;
+  width: 4.5ch;
+  padding: 0 var(--sp-1);
+  text-align: center;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-heavy);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Segmented control ---- */
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.seg {
+  min-height: calc(var(--tap) - 8px);
+  min-width: var(--tap);
+  padding: 0 var(--sp-4);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-weight: var(--fw-bold);
+  color: var(--muted);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.seg[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg-held[aria-pressed="true"] { background: var(--held); color: var(--surface); }
+.seg-failed[aria-pressed="true"] { background: var(--failed); color: var(--surface); }
+
+/* ---- Status ---- */
+
+.form-error {
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--failed-soft);
+  color: var(--failed);
+  font-weight: var(--fw-bold);
+}
+
+.sync {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--held);
+  text-align: right;
+  line-height: 1.2;
+  flex: 0 1 8.5rem;
+}
+.sync[data-tone="busy"] { color: var(--accent); }
+.sync[data-tone="warn"] { color: var(--warn); }
+.sync[data-tone="error"] { color: var(--failed); }
+
+/* ---- App shell ---- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: env(safe-area-inset-top) var(--gutter) 0;
+}
+.app-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-height: var(--header-h);
+}
+#week-slot:empty { display: none; }
+#week-slot { padding-bottom: var(--sp-3); }
+
+/* The person you are logging for is the loudest thing on screen. */
+.person-picker {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.person-picker::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 0.55em;
+  height: 0.55em;
+  margin-top: -0.4em;
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
+  transform: rotate(45deg);
+  pointer-events: none;
+  font-size: var(--fs-xl);
+}
+.person-select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: 0 1.6em 0 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-heavy);
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.app-main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--sp-4) var(--gutter) calc(var(--nav-h) + var(--sp-6) + env(safe-area-inset-bottom));
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-btn {
+  position: relative;
+  min-height: var(--nav-h);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.nav-btn[aria-current="page"] {
+  color: var(--ink);
+  font-weight: var(--fw-heavy);
+}
+.nav-btn[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22%;
+  right: 22%;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+  background: var(--accent);
+}
