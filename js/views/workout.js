@@ -77,21 +77,27 @@ function personSessions(personId) {
 // ---- Remembered session (per person, today only) ----
 
 const sessionKey = personId => `gym.session.${personId}`;
+const sessionMemory = new Map(); // personId -> { id, date }: this page's choice, used if storage fails
 
 function chosenSessionId(personId) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(sessionKey(personId)));
-    return saved && saved.date === today() ? saved.id : null;
-  } catch {
-    return null;
+  let saved = sessionMemory.get(personId);
+  if (!saved) {
+    try {
+      saved = JSON.parse(localStorage.getItem(sessionKey(personId)));
+    } catch {
+      saved = null;
+    }
   }
+  return saved && saved.date === today() ? saved.id : null;
 }
 
 function chooseSession(personId, sessionId) {
+  const choice = { id: sessionId, date: today() };
+  sessionMemory.set(personId, choice);
   try {
-    localStorage.setItem(sessionKey(personId), JSON.stringify({ id: sessionId, date: today() }));
+    localStorage.setItem(sessionKey(personId), JSON.stringify(choice));
   } catch {
-    // storage blocked: the choice simply is not remembered
+    // storage full or blocked: the choice lives in memory for this page
   }
   refresh();
   window.scrollTo(0, 0);
