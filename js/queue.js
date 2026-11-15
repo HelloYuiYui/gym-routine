@@ -1,47 +1,99 @@
 // Offline write queue: ops persist in `storage` and are flushed through `send`.
-export function createQueue({ storage, key = 'gym.queue', send, onChange }) {
-  let rejected = 0;
-  let running = null;
+//
+// `send(op)` resolves 'ok' (sent: the op is removed), 'reject' (the server refused it
+// for good: the op moves to the persisted rejected list) or anything else, which is
+// treated as 'retry' (the op stays and the run stops).
+//
+// Several page instances (tabs) may share one storage, so every mutation re-reads
+// storage first and removes ops by their `id`, never by position. If storage fails
+// (full or blocked), the queue keeps working from memory and `storageFailed()` is true.
+const defaultId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-  function load() {
+export function createQueue({ storage, key = 'gym.queue', send, onChange, newId = defaultId }) {
+  const rejectedKey = `${key}.rejected`;
+  let running = null;
+  let failed = false; // the last write failed: storage is behind memory
+  const mem = { [key]: [], [rejectedKey]: [] };
+
+  function read(k) {
+    if (failed) return mem[k];
+    let raw;
     try {
-      const value = JSON.parse(storage.getItem(key));
-      return Array.isArray(value) ? value : [];
+      raw = storage.getItem(k);
     } catch {
-      return [];
+      return mem[k];
+    }
+    let list;
+    try {
+      list = JSON.parse(raw);
+    } catch {
+      list = [];
+    }
+    mem[k] = Array.isArray(list) ? list : [];
+    return mem[k];
+  }
+
+  function write() {
+    try {
+      storage.setItem(key, JSON.stringify(mem[key]));
+      storage.setItem(rejectedKey, JSON.stringify(mem[rejectedKey]));
+      failed = false;
+    } catch {
+      failed = true;
     }
   }
 
-  let ops = load();
+  // Read both lists fresh, change them, write them back.
+  function mutate(fn) {
+    const ops = read(key);
+    const rejected = read(rejectedKey);
+    const next = fn({ ops: [...ops], rejected: [...rejected] });
+    mem[key] = next.ops;
+    mem[rejectedKey] = next.rejected;
+    write();
+  }
 
-  function save() {
-    storage.setItem(key, JSON.stringify(ops));
+  // Ops written before ids existed get one now, so they can be removed by id.
+  function withIds() {
+    const ops = read(key);
+    if (ops.every(o => o && o.id)) return ops;
+    mutate(({ ops, rejected }) => ({ ops: ops.map(o => (o && o.id ? o : { ...o, id: newId() })), rejected }));
+    return mem[key];
   }
 
   function notify() {
-    if (onChange) onChange(ops.length, rejected);
+    if (onChange) onChange(read(key).length, read(rejectedKey).length);
   }
 
   async function run() {
-    while (ops.length > 0) {
+    for (;;) {
+      const op = withIds()[0];
+      if (!op) return;
       let result;
       try {
-        result = await send(ops[0]);
+        result = await send(op);
       } catch {
         result = 'retry';
       }
-      if (result === 'retry') break;
-      if (result === 'reject') rejected++;
-      ops.shift();
-      save();
+      if (result === 'ok') {
+        mutate(({ ops, rejected }) => ({ ops: ops.filter(o => o.id !== op.id), rejected }));
+      } else if (result === 'reject') {
+        mutate(({ ops, rejected }) => ({
+          ops: ops.filter(o => o.id !== op.id),
+          rejected: rejected.some(o => o.id === op.id) ? rejected : [...rejected, op],
+        }));
+      } else {
+        notify();
+        return;
+      }
       notify();
     }
   }
 
   return {
     add(op) {
-      ops.push(op);
-      save();
+      mutate(({ ops, rejected }) => ({ ops: [...ops, { ...op, id: op.id ?? newId() }], rejected }));
       notify();
     },
     flush() {
@@ -51,7 +103,19 @@ export function createQueue({ storage, key = 'gym.queue', send, onChange }) {
       return running;
     },
     pending() {
-      return ops.length;
+      return read(key).length;
+    },
+    rejected() {
+      return read(rejectedKey).length;
+    },
+    ops() {
+      return [...read(key)];
+    },
+    rejectedOps() {
+      return [...read(rejectedKey)];
+    },
+    storageFailed() {
+      return failed;
     },
   };
 }
