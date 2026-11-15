@@ -660,3 +660,49 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rt-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); }
 .rt-remove { color: var(--failed); border-color: var(--failed); background: transparent; }
 .rt-new { margin-top: var(--sp-1); }
+
+/* =====================================================================
+   Progress view
+   One card per logged exercise, grouped by session. Line in the accent,
+   held points filled green, failed points hollow red.
+   ===================================================================== */
+
+.progress { display: flex; flex-direction: column; gap: var(--sp-5); }
+.pg-group { display: flex; flex-direction: column; gap: var(--sp-3); }
+.pg-session {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-heavy);
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.pg-card { display: flex; flex-direction: column; gap: var(--sp-2); }
+.pg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.pg-title-wrap { min-width: 0; }
+.pg-title-wrap .card-title { overflow-wrap: anywhere; }
+.pg-removed { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--warn); }
+.pg-latest { flex: 0 0 auto; text-align: right; line-height: 1.1; }
+.pg-latest-value { font-size: var(--fs-num); }
+.pg-unit { font-size: var(--fs-sm); font-weight: var(--fw-bold); color: var(--muted); }
+
+.pg-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.pg-base { stroke: var(--line); stroke-width: 1; }
+.pg-axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; font-family: var(--font); }
+.pg-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.pg-dot { stroke-width: 2; }
+.pg-dot-held { fill: var(--held); stroke: var(--surface); }
+.pg-dot-failed { fill: var(--surface); stroke: var(--failed); stroke-width: 3; }
+.pg-ring { fill: none; stroke: var(--ink); stroke-width: 2; }
+.pg-hit { fill: transparent; cursor: pointer; touch-action: manipulation; }
+.pg-hit:focus-visible { outline: 3px solid var(--focus); }
+.pg-held, .pg-failed { font-weight: var(--fw-bold); }
+.pg-held { color: var(--held); }
+.pg-failed { color: var(--failed); }
+
+.pg-dates:has(> :only-child) { justify-content: center; padding-left: 0; }
+.pg-dates {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 13.75%; /* LABEL_W / viewBox width: line the dates up with the plot */
+  font-size: var(--fs-sm);
+}
+.pg-detail { min-height: 1.4em; font-size: var(--fs-base); }
